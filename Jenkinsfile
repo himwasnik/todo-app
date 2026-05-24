@@ -1,6 +1,5 @@
 pipeline {
 
-    agent { label 'agent1' }
 
     parameters {
 
