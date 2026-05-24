@@ -2,14 +2,48 @@ pipeline {
 
     agent { label 'agent1' }
 
+    parameters {
+
+        string(
+            name: 'GIT_BRANCH',
+            defaultValue: 'main',
+            description: 'Git branch to build'
+        )
+
+        string(
+            name: 'DOCKER_IMAGE_TAG',
+            defaultValue: 'latest',
+            description: 'Docker image tag'
+        )
+
+        booleanParam(
+            name: 'RUN_TRIVY_SCAN',
+            defaultValue: true,
+            description: 'Run Trivy security scan'
+        )
+
+        booleanParam(
+            name: 'PUSH_TO_DOCKERHUB',
+            defaultValue: true,
+            description: 'Push image to DockerHub'
+        )
+
+        booleanParam(
+            name: 'DEPLOY_CONTAINER',
+            defaultValue: true,
+            description: 'Deploy Docker container'
+        )
+    }
+
     environment {
 
         IMAGE_NAME = 'todo-app'
+
         CONTAINER_NAME = 'todo-app-container'
 
         DOCKERHUB_USERNAME = 'himwasnik'
 
-        IMAGE_TAG = "${DOCKERHUB_USERNAME}/todo-app:latest"
+        IMAGE_TAG = "${DOCKERHUB_USERNAME}/todo-app:${params.DOCKER_IMAGE_TAG}"
 
         SCANNER_HOME = tool 'sonar-scanner'
     }
@@ -18,7 +52,10 @@ pipeline {
 
         stage('Checkout Code') {
             steps {
-                checkout scm
+
+                git branch: "${params.GIT_BRANCH}",
+                url: 'https://github.com/YOUR_GITHUB_USERNAME/YOUR_REPO.git'
+
             }
         }
 
@@ -49,6 +86,11 @@ pipeline {
         }
 
         stage('Trivy Scan') {
+
+            when {
+                expression { params.RUN_TRIVY_SCAN == true }
+            }
+
             steps {
 
                 sh '''
@@ -69,6 +111,11 @@ pipeline {
         }
 
         stage('Login to Docker Hub') {
+
+            when {
+                expression { params.PUSH_TO_DOCKERHUB == true }
+            }
+
             steps {
 
                 withCredentials([
@@ -88,6 +135,11 @@ pipeline {
         }
 
         stage('Push to Docker Hub') {
+
+            when {
+                expression { params.PUSH_TO_DOCKERHUB == true }
+            }
+
             steps {
 
                 sh '''
@@ -98,6 +150,11 @@ pipeline {
         }
 
         stage('Stop Old Container') {
+
+            when {
+                expression { params.DEPLOY_CONTAINER == true }
+            }
+
             steps {
 
                 sh '''
@@ -108,6 +165,11 @@ pipeline {
         }
 
         stage('Run Container') {
+
+            when {
+                expression { params.DEPLOY_CONTAINER == true }
+            }
+
             steps {
 
                 sh '''
@@ -121,6 +183,11 @@ pipeline {
         }
 
         stage('Verify Running Container') {
+
+            when {
+                expression { params.DEPLOY_CONTAINER == true }
+            }
+
             steps {
 
                 sh '''
