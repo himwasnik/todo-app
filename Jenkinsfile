@@ -2,6 +2,11 @@ pipeline {
 
     agent any
 
+    environment {
+
+        SCANNER_HOME = tool 'sonar-scanner'
+    }
+
     stages {
 
         stage('Checkout Code') {
@@ -11,6 +16,23 @@ pipeline {
                 git branch: 'master',
                 url: 'https://github.com/himwasnik/todo-app.git'
 
+            }
+        }
+
+        stage('SonarQube Analysis') {
+
+            steps {
+
+                withSonarQubeEnv('sonar') {
+
+                    sh '''
+                    $SCANNER_HOME/bin/sonar-scanner \
+                    -Dsonar.projectKey=todo-app \
+                    -Dsonar.projectName=todo-app \
+                    -Dsonar.sources=. \
+                    '''
+
+                }
             }
         }
 
