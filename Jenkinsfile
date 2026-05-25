@@ -66,24 +66,14 @@ pipeline {
             }
         }
 
-        stage('SonarQube Analysis') {
-
-            when {
-                expression { params.RUN_SONARQUBE == true }
-            }
+        stage('Clean Old Docker Images') {
 
             steps {
 
-                withSonarQubeEnv('sonar') {
+                sh '''
+                docker images | grep todo-app | awk '{print $3}' | xargs -r docker rmi -f || true
+                '''
 
-                    sh '''
-                    $SCANNER_HOME/bin/sonar-scanner \
-                    -Dsonar.projectKey=todo-app \
-                    -Dsonar.projectName=todo-app \
-                    -Dsonar.sources=. \
-                    '''
-
-                }
             }
         }
 
@@ -98,18 +88,45 @@ pipeline {
             }
         }
 
-        stage('Trivy Scan') {
+        stage('Parallel Security Checks') {
 
-            when {
-                expression { params.RUN_TRIVY_SCAN == true }
-            }
+            parallel {
 
-            steps {
+                stage('SonarQube Analysis') {
 
-                sh '''
-                trivy image $IMAGE_NAME
-                '''
+                    when {
+                        expression { params.RUN_SONARQUBE == true }
+                    }
 
+                    steps {
+
+                        withSonarQubeEnv('sonar') {
+
+                            sh '''
+                            $SCANNER_HOME/bin/sonar-scanner \
+                            -Dsonar.projectKey=todo-app \
+                            -Dsonar.projectName=todo-app \
+                            -Dsonar.sources=. \
+                            '''
+
+                        }
+                    }
+                }
+
+                stage('Trivy Scan') {
+
+                    when {
+                        expression { params.RUN_TRIVY_SCAN == true }
+                    }
+
+                    steps {
+
+                        sh '''
+                        trivy image $IMAGE_NAME
+                        '''
+
+                    }
+                }
             }
         }
 
@@ -227,6 +244,14 @@ pipeline {
         failure {
 
             echo 'Pipeline failed!'
+
+        }
+
+        always {
+
+            sh '''
+            docker image prune -f || true
+            '''
 
         }
     }
