@@ -8,7 +8,7 @@ pipeline {
 
             steps {
 
-                git branch: 'main',
+                git branch: 'master',
                 url: 'https://github.com/himwasnik/todo-app.git'
 
             }
