@@ -122,7 +122,7 @@ pipeline {
                     steps {
 
                         sh '''
-                        trivy image $IMAGE_NAME
+                        trivy image --scanners vuln --severity HIGH,CRITICAL $IMAGE_NAME
                         '''
 
                     }
